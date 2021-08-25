@@ -1,7 +1,7 @@
 __precompile__()
 module S3
 
-using AWSCore
+using AWS
 using AWSS3
 using Dates
 using FilePathsBase
@@ -35,7 +35,7 @@ const upload = Base.cp
 function presign(
     path::S3Path,
     duration::Period=Hour(1);
-    config::AWSConfig=aws_config(),
+    config::AWSConfig=global_aws_config(),
 )
     AWSS3.s3_sign_url(config, path.bucket, path.key, Dates.value(Second(duration)))
 end
