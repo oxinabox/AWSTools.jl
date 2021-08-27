@@ -7,15 +7,15 @@ const invalid_access_key = "ThisIsMyInvalidAccessKey"
 const invalid_secret_key = "ThisIsMyInvalidSecretKey"
 
 function get_auth(config::AWSConfig; params::AbstractDict=Dict())
-  id = lpad(!haskey(params, "registryIds") ? "" : first(params["registryIds"]), 12, '0')
-  return Dict(
-      "authorizationData" => [
-          Dict(
-              "authorizationToken" => base64encode("AWS:password"),
-              "proxyEndpoint" => "https://$(id).dkr.ecr.us-east-1.amazonaws.com",
-          ),
-      ],
-  )
+    id = lpad(!haskey(params, "registryIds") ? "" : first(params["registryIds"]), 12, '0')
+    return Dict(
+        "authorizationData" => [
+            Dict(
+                "authorizationToken" => base64encode("AWS:password"),
+                "proxyEndpoint" => "https://$(id).dkr.ecr.us-east-1.amazonaws.com",
+            ),
+        ],
+    )
 end
 
 get_caller_identity_patch = @patch function AWSTools.get_caller_identity()
@@ -51,15 +51,15 @@ function instance_metadata_patch(result)
 end
 
 get_authorization_token_patch = @patch function AWSTools.ECR.get_authorization_token(
-  config::AWSConfig, params::AbstractDict
+    config::AWSConfig, params::AbstractDict
 )
-  return get_auth(config; params=params)
+    return get_auth(config; params=params)
 end
 
 get_authorization_token_no_param_patch = @patch function AWSTools.ECR.get_authorization_token(
-  config::AWSConfig
+    config::AWSConfig
 )
-  return get_auth(config)
+    return get_auth(config)
 end
 
 
