@@ -37,7 +37,7 @@ function presign(
     duration::Period=Hour(1);
     config::AWSConfig=global_aws_config(),
 )
-    AWSS3.s3_sign_url(config, path.bucket, path.key, Dates.value(Second(duration)))
+    return AWSS3.s3_sign_url(config, path.bucket, path.key, Dates.value(Second(duration)))
 end
 
 # TODO: Remove the sync methods below as they are now pirating.
