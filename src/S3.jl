@@ -33,7 +33,7 @@ const upload = Base.cp
 # Note: naming copied from Go SDK:
 # https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/s3-example-presigned-urls.html
 function presign(
-    path::S3Path, duration::Period=Hour(1); config::AWSConfig=global_aws_config(),
+    path::S3Path, duration::Period=Hour(1); config::AWSConfig=global_aws_config()
 )
     return AWSS3.s3_sign_url(config, path.bucket, path.key, Dates.value(Second(duration)))
 end
