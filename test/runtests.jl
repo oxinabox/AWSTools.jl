@@ -1,4 +1,5 @@
-using AWSCore: AWSCredentials, AWSException, aws_config
+using AWS
+using AWS: AWSExceptions.AWSException
 using AWSTools
 using Dates
 using Documenter
@@ -55,7 +56,6 @@ function Base.convert(::Type{Vector{String}}, cmd::Cmd)
 end
 
 @testset "AWSTools Tests" begin
-
     include("timeout.jl")
     include("EC2.jl")
     include("S3.jl")
@@ -68,8 +68,10 @@ end
 
     @testset "assume_role" begin
         apply(sts_assume_role) do
-            @test isa(AWSTools.assume_role("TestArn")[:creds], AWSCredentials)
-            @test isa(AWSTools.assume_role("TestArn")[:creds].renew, Function)
+            result = AWSTools.assume_role("TestArn")
+
+            @test isa(result.credentials, AWSCredentials)
+            @test isa(result.credentials.renew, Function)
         end
     end
 
@@ -81,7 +83,7 @@ end
                 @test resp == describe_stack_string()
                 @test_throws AWSException begin
                     creds = AWSCredentials(invalid_access_key, invalid_secret_key)
-                    raw_stack_description("stackname"; config=aws_config(; creds=creds))
+                    raw_stack_description("stackname"; config=AWSConfig(; creds=creds))
                 end
             end
 
@@ -123,9 +125,10 @@ end
 
     @testset "ECR" begin
         @testset "Basic login" begin
-            apply(get_authorization_token_patch) do
+            apply(get_authorization_token_no_param_patch) do
                 docker_login = get_login()
-                @test docker_login == `docker login -u AWS -p password https://000000000000.dkr.ecr.us-east-1.amazonaws.com`
+                @test docker_login ==
+                      `docker login -u AWS -p password https://000000000000.dkr.ecr.us-east-1.amazonaws.com`
             end
         end
 

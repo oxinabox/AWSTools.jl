@@ -1,13 +1,16 @@
 module CloudFormation
 
-using AWSCore
-using AWSCore.Services: cloudformation
+using AWS
+using AWS: AWSExceptions.AWSException
 using EzXML
 using MbedTLS: MbedException
 using Memento
 using Mocking
 using OrderedCollections: OrderedDict
 using XMLDict
+
+# Improper casing to avoid issues with Module name and AWS.AWSService
+@service cloudFormation
 
 const logger = getlogger(@__MODULE__)
 
@@ -17,8 +20,9 @@ __init__() = Memento.register(logger)
 
 export raw_stack_description, stack_output, stack_description
 
-describe_stacks(config; kwargs...) = cloudformation(config, "DescribeStacks"; kwargs...)
-
+function describe_stacks(config::AWSConfig, params::AbstractDict)
+    return cloudFormation.describe_stacks(params; aws_config=config)
+end
 
 const _NRETRIES = 5
 
@@ -38,8 +42,7 @@ Returns the description for the specified stack. Can optionally pass in the aws 
 as a keyword argument.
 """
 function raw_stack_description(
-    stack_name::AbstractString;
-    config::AWSConfig=aws_config()
+    stack_name::AbstractString; config::AWSConfig=global_aws_config()
 )
     function retry_cond(s, e)
         if e isa AWSException
@@ -58,10 +61,8 @@ function raw_stack_description(
         return (s, false)
     end
 
-    f = retry(delays=cautious_delays(; jitter=0.2), check=retry_cond) do
-        aws_raw_config = deepcopy(config)
-        aws_raw_config[:return_raw] = true
-        @mock describe_stacks(aws_raw_config, StackName=stack_name)
+    f = retry(; delays=cautious_delays(; jitter=0.2), check=retry_cond) do
+        @mock describe_stacks(config, Dict("StackName" => stack_name, "return_raw" => true))
     end
 
     response = String(f())
@@ -75,8 +76,8 @@ end
 The stack's OutputKey and OutputValue values as a dictionary. Can pass in the aws `config`
 as a keyword argument.
 """
-function stack_output(stack_name::AbstractString; config::AWSConfig=aws_config())
-    outputs = OrderedDict{String, String}()
+function stack_output(stack_name::AbstractString; config::AWSConfig=global_aws_config())
+    outputs = OrderedDict{String,String}()
     description = raw_stack_description(stack_name; config=config)
 
     xml = root(parsexml(description))
@@ -108,8 +109,7 @@ end
 # BEGIN AWSTools.Cloudformation 0.8.1 deprecations
 
 function stack_description(
-    stack_name::AbstractString;
-    config::AWSConfig=aws_config()
+    stack_name::AbstractString; config::AWSConfig=global_aws_config()
 )
     dep_msg = """
         `stack_description(::AbstractString; ::AWSConfig)` is deprecated and will be removed.
@@ -120,7 +120,7 @@ function stack_description(
 
     response = xml_dict(raw_stack_description(stack_name))
 
-    return response["DescribeStacksResponse"]["DescribeStacksResult"]["Stacks"]["member"]
+    return response["DescribeStacksResult"]["Stacks"]["member"]
 end
 
 # END AWSTools.Cloudformation 0.8.1 deprecations
